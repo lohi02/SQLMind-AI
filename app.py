@@ -21,6 +21,10 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# Initialize Session State History
+if "query_history" not in st.session_state:
+    st.session_state.query_history = []
+
 # Custom Styling
 st.markdown("""
 <style>
@@ -167,15 +171,21 @@ if user_query:
                 max_retries=2
             )
             exec_time_ms = round((time.time() - start_time) * 1000, 2)
+
+            # Store in Session Query History
+            st.session_state.query_history.insert(0, {
+                "question": user_query,
+                "sql": output.sql_query,
+                "time_ms": exec_time_ms,
+                "rows_count": len(exec_result[1]) if exec_result else 0
+            })
             
-            # Display Status Badges
-            b_col1, b_col2, b_col3 = st.columns([1, 1, 2])
-            with b_col1:
-                st.markdown(f'<span class="badge-provider">Provider: {provider_choice}</span>', unsafe_allow_html=True)
-            with b_col2:
-                st.markdown('<span class="badge-safe">✅ Read-Only Verified</span>', unsafe_allow_html=True)
-            with b_col3:
-                st.caption(f"⚡ Execution Time: {exec_time_ms} ms")
+            # --- Metrics Dashboard Bar ---
+            m1, m2, m3, m4 = st.columns(4)
+            m1.metric("⏱️ Query Latency", f"{exec_time_ms} ms")
+            m2.metric("📊 Rows Returned", len(exec_result[1]) if exec_result else 0)
+            m3.metric("🤖 LLM Provider", provider_choice.split()[0])
+            m4.metric("🛡️ Security Guard", "Passed SELECT")
 
             # Display Repair Logs if Self-Correction occurred
             if repair_logs:
@@ -184,7 +194,12 @@ if user_query:
                         st.info(log_msg)
 
             # --- Results Tabs ---
-            tab_data, tab_chart, tab_sql = st.tabs(["📊 Query Results", "📈 Visual Analytics", "💡 Generated SQL & Logic"])
+            tab_data, tab_chart, tab_sql, tab_history = st.tabs([
+                "📊 Query Results", 
+                "📈 Visual Analytics", 
+                "💡 Generated SQL & Logic",
+                "📜 Session History"
+            ])
             
             with tab_data:
                 if exec_result:
@@ -222,6 +237,16 @@ if user_query:
                 st.write(output.explanation)
                 if output.tables_used:
                     st.caption(f"Tables Referenced: {', '.join(output.tables_used)}")
+
+            with tab_history:
+                st.subheader("📜 Session Query History")
+                if st.session_state.query_history:
+                    for h_idx, item in enumerate(st.session_state.query_history[:5]):
+                        with st.expander(f"Q{len(st.session_state.query_history)-h_idx}: {item['question']}"):
+                            st.code(item['sql'], language="sql")
+                            st.caption(f"Latency: {item['time_ms']} ms | Rows: {item['rows_count']}")
+                else:
+                    st.info("No queries executed in this session yet.")
 
         except Exception as err:
             st.error(f"Error during query execution: {err}")
