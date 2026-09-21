@@ -1,19 +1,34 @@
 import sqlite3
 import os
+import re
+import pandas as pd
 from typing import Dict, List, Any, Tuple
 from tabulate import tabulate
 
 class DatabaseManager:
     def __init__(self, db_path: str):
-        if not os.path.exists(db_path):
-            raise FileNotFoundError(f"Database file not found at path: '{db_path}'")
         self.db_path = db_path
+        if not os.path.exists(db_path):
+            # Create an empty database file if it doesn't exist
+            conn = sqlite3.connect(self.db_path)
+            conn.close()
 
     def get_connection(self) -> sqlite3.Connection:
         """Returns a connection to the SQLite database."""
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row
         return conn
+
+    def import_csv(self, table_name: str, csv_file_or_path: Any) -> str:
+        """
+        Imports a CSV file/stream into the SQLite database as a new table.
+        """
+        df = pd.read_csv(csv_file_or_path)
+        clean_table_name = re.sub(r'\W+', '_', table_name.strip().lower())
+        conn = sqlite3.connect(self.db_path)
+        df.to_sql(clean_table_name, conn, if_exists='replace', index=False)
+        conn.close()
+        return f"Successfully imported table '{clean_table_name}' with {len(df)} rows and {len(df.columns)} columns."
 
     def extract_schema(self, include_sample_rows: bool = True) -> str:
         """
@@ -35,7 +50,6 @@ class DatabaseManager:
             
             col_descriptions = []
             for col in columns:
-                # col schema: (cid, name, type, notnull, dflt_value, pk)
                 col_name = col['name']
                 col_type = col['type']
                 is_pk = " (PRIMARY KEY)" if col['pk'] else ""

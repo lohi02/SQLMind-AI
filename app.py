@@ -70,34 +70,46 @@ with st.sidebar:
     
     provider_choice = st.selectbox(
         "Select LLM Provider",
-        ["Mock (Offline Fallback)", "Google Gemini (Free API)", "OpenAI", "Ollama (Local)"],
+        ["Google Gemini (Free API)", "Mock (Offline Fallback)", "OpenAI", "Ollama (Local)"],
         index=0
     )
     
     provider_type_map = {
-        "Mock (Offline Fallback)": "mock",
         "Google Gemini (Free API)": "gemini",
+        "Mock (Offline Fallback)": "mock",
         "OpenAI": "openai",
         "Ollama (Local)": "ollama"
     }
     selected_provider_type = provider_type_map[provider_choice]
     
     # Provider-specific API Key inputs
-    if selected_provider_type == "openai":
-        api_key = st.text_input("OpenAI API Key", type="password", value=os.getenv("OPENAI_API_KEY", ""))
-        if api_key: os.environ["OPENAI_API_KEY"] = api_key
-    elif selected_provider_type == "gemini":
+    if selected_provider_type == "gemini":
         api_key = st.text_input("Google Gemini API Key (Free)", type="password", value=os.getenv("GEMINI_API_KEY", ""))
         if api_key: os.environ["GEMINI_API_KEY"] = api_key
+    elif selected_provider_type == "openai":
+        api_key = st.text_input("OpenAI API Key", type="password", value=os.getenv("OPENAI_API_KEY", ""))
+        if api_key: os.environ["OPENAI_API_KEY"] = api_key
     elif selected_provider_type == "ollama":
         ollama_url = st.text_input("Ollama Base URL", value="http://localhost:11434")
         os.environ["OLLAMA_BASE_URL"] = ollama_url
 
     st.markdown("---")
+    st.markdown("### 📤 Upload Your Own CSV Dataset")
+    uploaded_file = st.file_uploader("Upload CSV file to query your dataset", type=["csv"])
+    if uploaded_file is not None:
+        table_name_input = st.text_input("Table Name for Dataset", value=os.path.splitext(uploaded_file.name)[0])
+        if st.button("Import CSV to Database"):
+            try:
+                msg = db_manager.import_csv(table_name_input, uploaded_file)
+                st.success(msg)
+                st.rerun()
+            except Exception as e:
+                st.error(f"Failed to import CSV: {e}")
+
+    st.markdown("---")
     st.markdown("### 🗄️ Database Schema Browser")
     
     try:
-        schema_text = db_manager.extract_schema(include_sample_rows=True)
         conn = db_manager.get_connection()
         cursor = conn.cursor()
         cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';")
