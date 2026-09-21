@@ -25,8 +25,15 @@ st.set_page_config(
 if "query_history" not in st.session_state:
     st.session_state.query_history = []
 
-# Custom Styling
+# Inject PWA Manifest & Meta Tags
 st.markdown("""
+<head>
+    <link rel="manifest" href="https://raw.githubusercontent.com/lohi02/SQLMind-AI/main/manifest.json">
+    <meta name="theme-color" content="#4F46E5">
+    <meta name="description" content="Natural Language to SQL Assistant with Agentic AI, Multi-LLM Orchestration, and Visual Data Analytics">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+</head>
 <style>
     .main-header {
         font-size: 2.3rem;
