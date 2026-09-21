@@ -4,6 +4,7 @@ import time
 import datetime
 import hashlib
 import hmac
+import sqlite3
 from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, Field
 import jwt
@@ -43,16 +44,64 @@ db_manager = DatabaseManager(DB_PATH)
 validator = SQLValidator()
 security_bearer = HTTPBearer()
 
-# In-Memory Commercial User & Quota Database (Replace with PostgreSQL/Redis in production)
-USERS_DB: Dict[str, Dict[str, Any]] = {
-    "demo@sqlmind.ai": {
-        "email": "demo@sqlmind.ai",
-        "hashed_password": hash_password("demo1234"),
-        "tier": "FREE",  # FREE or PRO
-        "queries_today": 0,
-        "last_query_date": str(datetime.date.today())
-    }
-}
+# --- SQLite Persistent User Database ---
+def get_db_connection():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+def init_user_db():
+    conn = get_db_connection()
+    c = conn.cursor()
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS saas_users (
+        email TEXT PRIMARY KEY,
+        hashed_password TEXT NOT NULL,
+        tier TEXT NOT NULL DEFAULT 'FREE',
+        queries_today INTEGER NOT NULL DEFAULT 0,
+        last_query_date TEXT NOT NULL
+    );
+    """)
+    # Seed default demo account if missing
+    c.execute("SELECT email FROM saas_users WHERE email = 'demo@sqlmind.ai';")
+    if not c.fetchone():
+        c.execute("""
+        INSERT INTO saas_users (email, hashed_password, tier, queries_today, last_query_date)
+        VALUES (?, ?, ?, ?, ?);
+        """, ("demo@sqlmind.ai", hash_password("demo1234"), "FREE", 0, str(datetime.date.today())))
+    conn.commit()
+    conn.close()
+
+init_user_db()
+
+def get_user_record(email: str) -> Optional[Dict[str, Any]]:
+    conn = get_db_connection()
+    c = conn.cursor()
+    c.execute("SELECT email, hashed_password, tier, queries_today, last_query_date FROM saas_users WHERE email = ?;", (email,))
+    row = c.fetchone()
+    conn.close()
+    if row:
+        return dict(row)
+    return None
+
+def create_user_record(email: str, hashed_pwd: str):
+    conn = get_db_connection()
+    c = conn.cursor()
+    c.execute("""
+    INSERT INTO saas_users (email, hashed_password, tier, queries_today, last_query_date)
+    VALUES (?, ?, 'FREE', 0, ?);
+    """, (email, hashed_pwd, str(datetime.date.today())))
+    conn.commit()
+    conn.close()
+
+def update_user_quota(email: str, queries_today: int, last_query_date: str):
+    conn = get_db_connection()
+    c = conn.cursor()
+    c.execute("""
+    UPDATE saas_users SET queries_today = ?, last_query_date = ? WHERE email = ?;
+    """, (queries_today, last_query_date, email))
+    conn.commit()
+    conn.close()
 
 # --- FastAPI App Definition ---
 app = FastAPI(
@@ -111,24 +160,28 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         email = payload.get("sub")
-        if not email or email not in USERS_DB:
+        user = get_user_record(email) if email else None
+        if not user:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token user")
-        return USERS_DB[email]
+        return user
     except jwt.PyJWTError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired JWT token")
 
 def check_and_increment_quota(user: Dict[str, Any]):
     today_str = str(datetime.date.today())
-    if user["last_query_date"] != today_str:
-        user["last_query_date"] = today_str
-        user["queries_today"] = 0
+    queries_today = user["queries_today"]
     
-    if user["tier"] == "FREE" and user["queries_today"] >= FREE_DAILY_QUOTA:
+    if user["last_query_date"] != today_str:
+        queries_today = 0
+    
+    if user["tier"] == "FREE" and queries_today >= FREE_DAILY_QUOTA:
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail=f"Daily free quota limit reached ({FREE_DAILY_QUOTA} queries/day). Upgrade to PRO for unlimited queries!"
         )
-    user["queries_today"] += 1
+    
+    queries_today += 1
+    update_user_quota(user["email"], queries_today, today_str)
 
 # --- API Endpoints ---
 
@@ -143,23 +196,17 @@ def root():
 
 @app.post("/api/v1/auth/register", response_model=TokenResponse, tags=["Authentication"])
 def register(req: UserRegisterRequest):
-    if req.email in USERS_DB:
+    if get_user_record(req.email):
         raise HTTPException(status_code=400, detail="User email already registered")
     
     hashed_pwd = hash_password(req.password)
-    USERS_DB[req.email] = {
-        "email": req.email,
-        "hashed_password": hashed_pwd,
-        "tier": "FREE",
-        "queries_today": 0,
-        "last_query_date": str(datetime.date.today())
-    }
+    create_user_record(req.email, hashed_pwd)
     token = create_jwt_token(req.email)
     return TokenResponse(access_token=token, tier="FREE")
 
 @app.post("/api/v1/auth/login", response_model=TokenResponse, tags=["Authentication"])
 def login(req: UserLoginRequest):
-    user = USERS_DB.get(req.email)
+    user = get_user_record(req.email)
     if not user or not verify_password(req.password, user["hashed_password"]):
         raise HTTPException(status_code=401, detail="Invalid email or password")
     
