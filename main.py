@@ -84,7 +84,7 @@ def main():
     if args.question:
         run_text_to_sql_pipeline(args.question, db_manager, generator)
     else:
-        print("=== Text-to-SQL Assistant ===")
+        print("=== 🧠 SQLMind-AI Assistant ===")
         print(f"Connected to Database: '{db_path}'")
         print("Type your question in natural language (or type 'exit' or 'q' to quit).\n")
         
