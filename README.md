@@ -1,21 +1,28 @@
 # 🧠 SQLMind-AI: Enterprise Agentic Text-to-SQL Platform
 
-**SQLMind-AI** is a full-stack, agentic Text-to-SQL platform that converts natural language questions into accurate, executable database queries. It features **Multi-LLM Provider Support** (OpenAI, Google Gemini, Ollama, Mock), an **Agentic Self-Correction Loop**, **Automated Plotly Data Visualization**, and an **Interactive Streamlit Web Dashboard**.
+**SQLMind-AI** is a full-stack, commercial agentic Text-to-SQL platform that converts natural language questions into accurate, executable database queries. 
+
+It features a production **FastAPI Commercial REST API**, **JWT Authentication**, **Freemium Daily Quotas**, **Stripe Subscription Monetization**, **Multi-LLM Provider Support** (OpenAI, Google Gemini, Ollama, Mock), an **Agentic Self-Correction Loop**, **Automated Plotly Data Visualization**, and an **Interactive Streamlit Web Dashboard**.
 
 ---
 
 ## 🌟 Key Features
 
+- ⚡ **FastAPI Commercial REST API (`api_server.py`)**:
+  - JWT Bearer Authentication (`/api/v1/auth/register`, `/api/v1/auth/login`)
+  - Freemium Quota Enforcement (`10 free queries/day`, Unlimited for Pro)
+  - Interactive OpenAPI/Swagger Docs (`http://localhost:8000/docs`)
+  - Stripe Subscription Billing Integration (`/api/v1/billing/create-checkout-session` for $19/mo Pro)
 - 🌐 **Interactive Streamlit Dashboard (`app.py`)**: Sleek web UI with chat interface, interactive schema browser, SQL syntax highlighting, and 1-click **CSV Download**.
 - 🔌 **Multi-LLM Provider Support**:
   - **Google Gemini API** (100% Free API Key)
   - **OpenAI API** (`gpt-4o-mini`, `gpt-4o`)
   - **Ollama** (100% Free local offline execution using `llama3` / `codellama`)
   - **Smart Mock Fallback** (Instant offline testing without API keys)
-- 🔄 **Agentic Self-Correction Loop**: Catches SQL execution or validation errors, feeds error messages back to the LLM, and self-repair queries automatically.
+- 🔄 **Agentic Self-Correction Loop**: Catches SQL execution or validation errors, feeds error messages back to the LLM, and self-repairs queries automatically.
 - 📈 **Automated Visual Analytics**: Detects numeric & time-series dataset patterns and renders interactive Plotly bar, line, or pie charts automatically.
 - 🛡️ **Read-Only Safety Guardrails**: Enforces regex-based security rules blocking destructive operations (`DROP`, `DELETE`, `UPDATE`, `INSERT`, multi-query injections).
-- 🗄️ **Dynamic Schema Introspection**: Introspects table structures, column types, primary/foreign keys, and sample data automatically.
+- 🗄️ **Multi-Database Support (SQLAlchemy)**: Works with SQLite, PostgreSQL, and MySQL databases.
 
 ---
 
@@ -23,6 +30,7 @@
 
 ```text
 SQLMind-AI/
+├── api_server.py               # FastAPI Commercial REST API Server
 ├── app.py                      # Streamlit Web Dashboard Entry Point
 ├── main.py                     # Interactive CLI Application Entry Point
 ├── setup_sample_db.py          # Script to seed sample SQLite database (company.db)
@@ -30,7 +38,8 @@ SQLMind-AI/
 ├── .env.example                # Environment configuration template
 ├── src/
 │   ├── database/
-│   │   └── db_manager.py       # SQLite connection & dynamic schema introspection
+│   │   ├── db_manager.py       # SQLite connection & CSV importer
+│   │   └── sqlalchemy_manager.py # Unified SQLAlchemy multi-database manager (SQLite/Postgres/MySQL)
 │   ├── generator/
 │   │   ├── sql_generator.py    # Generator engine with Agentic Self-Correction
 │   │   └── providers.py        # Multi-provider factory (OpenAI, Gemini, Ollama, Mock)
@@ -39,7 +48,7 @@ SQLMind-AI/
 │   └── visualization/
 │       └── chart_generator.py  # Automatic Plotly chart generator
 └── tests/
-    └── test_text_to_sql.py     # Unit test suite
+    └── test_text_to_sql.py     # Unit test suite (API endpoints, Auth, SQL engine)
 ```
 
 ---
@@ -73,27 +82,29 @@ cp .env.example .env
 ```
 - For **Free Google Gemini**: Set `GEMINI_API_KEY=your_gemini_key`
 - For **OpenAI**: Set `OPENAI_API_KEY=your_openai_key`
-- For **Ollama**: Run Ollama locally (`http://localhost:11434`)
+- For **Stripe Billing**: Set `STRIPE_SECRET_KEY=your_stripe_key`
 
 ---
 
-## 💻 Running the Application
+## 💻 Running the Application & Services
 
-### 🌐 Option A: Streamlit Web Dashboard (Recommended)
+### ⚡ Option A: Run FastAPI Commercial REST API Server
+```bash
+uvicorn api_server:app --reload --port 8000
+```
+Open interactive Swagger API Documentation at: `http://localhost:8000/docs`
+
+### 🌐 Option B: Streamlit Web Dashboard
 ```bash
 streamlit run app.py
 ```
 
-### 🖥️ Option B: Command Line Interface (CLI)
+### 🖥️ Option C: Interactive CLI
 ```bash
-# Interactive CLI mode
 python main.py
-
-# Single query mode
-python main.py --question "What is the total sales amount per region?" --provider auto
 ```
 
-### 🧪 Option C: Run Unit Tests
+### 🧪 Option D: Run Automated Unit Tests
 ```bash
 python -m unittest discover -s tests
 ```
