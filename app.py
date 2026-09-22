@@ -28,6 +28,7 @@ if "query_history" not in st.session_state:
 # Inject PWA Manifest & Meta Tags
 st.markdown("""
 <head>
+    <meta name="google-site-verification" content="Bkcy509CGQJJyILOoXIfRM7nrnpjv95Ncufw8yGAwEI" />
     <link rel="manifest" href="https://raw.githubusercontent.com/lohi02/SQLMind-AI/main/manifest.json">
     <meta name="theme-color" content="#4F46E5">
     <meta name="description" content="Natural Language to SQL Assistant with Agentic AI, Multi-LLM Orchestration, and Visual Data Analytics">
