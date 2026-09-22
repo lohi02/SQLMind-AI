@@ -33,9 +33,12 @@ class OpenAIProvider(BaseLLMProvider):
         return response.choices[0].message.content
 
 class GeminiProvider(BaseLLMProvider):
-    def __init__(self, api_key: Optional[str] = None, model: str = "gemini-1.5-flash"):
+    def __init__(self, api_key: Optional[str] = None, model: Optional[str] = None):
         self.api_key = api_key or os.getenv("GEMINI_API_KEY")
-        self.model = model or os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+        target_model = model or os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
+        if target_model in ["gemini-1.5-flash", "gemini-2.5-flash"]:
+            target_model = "gemini-3.6-flash"
+        self.model = target_model
         if not self.api_key or self.api_key == "your_gemini_api_key_here":
             raise ValueError("Google Gemini API Key is missing or invalid in environment.")
         
