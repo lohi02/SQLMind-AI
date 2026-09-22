@@ -35,7 +35,10 @@ st.markdown("""
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
 </head>
-<style>
+    header[data-testid="stHeader"], #MainMenu, footer {
+        visibility: hidden !important;
+        height: 0px !important;
+    }
     .main-header {
         font-size: 2.3rem;
         font-weight: 700;
@@ -94,13 +97,23 @@ with st.sidebar:
     }
     selected_provider_type = provider_type_map[provider_choice]
     
-    # Provider-specific API Key inputs
+    # Provider-specific API Key inputs (Securely hide secret values from rendering in HTML)
     if selected_provider_type == "gemini":
-        api_key = st.text_input("Google Gemini API Key (Free)", type="password", value=os.getenv("GEMINI_API_KEY", ""))
-        if api_key: os.environ["GEMINI_API_KEY"] = api_key
+        if os.getenv("GEMINI_API_KEY") and os.getenv("GEMINI_API_KEY") != "your_gemini_api_key_here":
+            st.success("✅ Gemini API Connected (Server Secret Active)")
+            user_override = st.text_input("Override Gemini Key (Optional)", type="password", help="Leave blank to use server default key")
+            if user_override: os.environ["GEMINI_API_KEY"] = user_override
+        else:
+            api_key = st.text_input("Google Gemini API Key (Free)", type="password", help="Enter your Gemini key")
+            if api_key: os.environ["GEMINI_API_KEY"] = api_key
     elif selected_provider_type == "openai":
-        api_key = st.text_input("OpenAI API Key", type="password", value=os.getenv("OPENAI_API_KEY", ""))
-        if api_key: os.environ["OPENAI_API_KEY"] = api_key
+        if os.getenv("OPENAI_API_KEY") and os.getenv("OPENAI_API_KEY") != "your_openai_api_key_here":
+            st.success("✅ OpenAI API Connected (Server Secret Active)")
+            user_override = st.text_input("Override OpenAI Key (Optional)", type="password", help="Leave blank to use server key")
+            if user_override: os.environ["OPENAI_API_KEY"] = user_override
+        else:
+            api_key = st.text_input("OpenAI API Key", type="password", help="Enter your OpenAI key")
+            if api_key: os.environ["OPENAI_API_KEY"] = api_key
     elif selected_provider_type == "ollama":
         ollama_url = st.text_input("Ollama Base URL", value="http://localhost:11434")
         os.environ["OLLAMA_BASE_URL"] = ollama_url
