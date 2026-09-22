@@ -35,6 +35,7 @@ st.markdown("""
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
 </head>
+<style>
     header[data-testid="stHeader"], #MainMenu, footer {
         visibility: hidden !important;
         height: 0px !important;
