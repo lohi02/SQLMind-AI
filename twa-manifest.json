@@ -1,6 +1,6 @@
 {
   "packageId": "ai.sqlmind.app",
-  "host": "sqlmind-ai-tuhgpdeyy6m5ifh4ae2szb.streamlit.app",
+  "host": "sqlmind-ai.streamlit.app",
   "name": "SQLMind AI Platform",
   "launcherName": "SQLMind",
   "display": "standalone",
@@ -21,7 +21,7 @@
     "alias": "android"
   },
   "appVersionName": "1.0.0",
-  "appVersionCode": 1,
+  "appVersionCode": 2,
   "shortcuts": [],
   "generatorApp": "bubblewrap-cli",
   "webManifestUrl": "https://raw.githubusercontent.com/lohi02/SQLMind-AI/main/manifest.json",
@@ -37,7 +37,7 @@
   "enableSiteSettingsShortcut": true,
   "isChromeOSOnly": false,
   "isMetaQuest": false,
-  "fullScopeUrl": "https://sqlmind-ai-tuhgpdeyy6m5ifh4ae2szb.streamlit.app/",
+  "fullScopeUrl": "https://sqlmind-ai.streamlit.app/",
   "minSdkVersion": 23,
   "orientation": "any",
   "fingerprints": [],
