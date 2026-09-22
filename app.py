@@ -36,9 +36,11 @@ st.markdown("""
     <meta name="apple-mobile-web-app-capable" content="yes">
 </head>
 <style>
-    header[data-testid="stHeader"], #MainMenu, footer {
+    header[data-testid="stHeader"] {
+        display: none !important;
+    }
+    #MainMenu, footer {
         visibility: hidden !important;
-        height: 0px !important;
     }
     .main-header {
         font-size: 2.3rem;
