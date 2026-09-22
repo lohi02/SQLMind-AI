@@ -22,3 +22,10 @@ __pycache__/
 .idea/
 *.swp
 .DS_Store
+
+# Android & Gradle Build Artifacts
+.gradle/
+app/build/
+build/
+*.keystore
+hs_err_pid*.log
