@@ -236,14 +236,26 @@ def generate_sql_query(
     check_and_increment_quota(current_user)
     
     start_time = time.time()
-    generator = SQLGenerator(provider_type=req.provider)
+    try:
+        generator = SQLGenerator(provider_type=req.provider)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"LLM Provider Initialization Error: {str(e)}"
+        )
     
-    output, repair_logs, exec_result = generator.generate_sql_with_self_correction(
-        user_question=req.question,
-        db_manager=db_manager,
-        validator=validator,
-        max_retries=2
-    )
+    try:
+        output, repair_logs, exec_result = generator.generate_sql_with_self_correction(
+            user_question=req.question,
+            db_manager=db_manager,
+            validator=validator,
+            max_retries=2
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Text-to-SQL Generation Failed: {str(e)}"
+        )
     exec_time_ms = round((time.time() - start_time) * 1000, 2)
     
     columns = exec_result[0] if exec_result else []
